@@ -300,7 +300,7 @@ WHERE cname NOT LIKE '王%' OR cname IS NULL
 
 ---
 
-## SQL To-Do List
+## SQL To-Do List-
 
 - [✓] `CREATE DATABASE / USE`
 - [✓] `CREATE TABLE`
