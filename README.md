@@ -20,13 +20,20 @@
 #### 語法： CREATE DATABASE / USE
 
 (01) 在 VS Code 開啟新檔案
-(02) 輸入 `CREATE DATABASE database_name` (自行命名資料庫)
-(03) 成功後記得切換到新建立的資料庫才能進行編輯
-  切換資料庫有兩個方法
-  (03-1) 在 VS Code 視窗右下角點選目前資料庫名稱，選擇新的資料庫
-  (03-2) 使用指令 `USE database_name`
-(00) 指令執行方式：點 VS Code 左上角綠色三角形 ▹
-或使用 GO 分隔指令
+
+(02) 輸入 `CREATE DATABASE database_name`（自行命名資料庫）
+
+(03) 成功後切換到新建立的資料庫才能進行編輯
+
+切換資料庫方法：
+
+- (A) 在 VS Code 視窗右下角點選目前資料庫名稱，選擇新的資料庫
+- (B) 使用指令 `USE database_name`
+
+指令執行方式：
+
+- 點 VS Code 左上角綠色三角形 ▹
+- 或使用 `GO` 分隔指令
 
 ```sql
 -- 建立新的資料庫
