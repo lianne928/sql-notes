@@ -1,7 +1,20 @@
 # SQL Notes
 
-簡單的 SQL 速查語法筆記，整理給自己與同學使用。  
+這是一份由實際課程、作業與自學整理而成的 SQL 筆記，用於快速查詢常用語法與理解 SQL 的運作邏輯。內容涵蓋基礎建立資料庫查詢、條件判斷、聚合、分組、排序、JOIN、CASE WHEN 等常見語法，並包含可直接運行的範例。
+
 資料庫範例以 `研蘋果 – 朱克剛老師` 提供的 `AddressBook.sqo` 資料庫為主。
+
+## 適合對象
+
+- 正在學習 SQL 的初學者
+- 想快速查找語法的開發者
+
+## 筆記特色
+
+- 每個章節皆附上語法 + 實例
+- 重點條列化，便於查找
+- 嚴格以 SQL 執行順序與實務邏輯整理
+- 包含 CASE WHEN、子查詢等「常見卻易錯」的重點語法說明
 
 ---
 
@@ -17,8 +30,11 @@
 8. [分組後條件篩選 HAVING](#分組後條件篩選)
 9. [查詢結果排序 ORDER BY](#查詢結果排序)
 10. [條件判斷 CASE WHEN](#條件判斷)
+11. [集合運算 JOIN](#集合運算)
+12. [子查詢 WHERE IN()](#子查詢)
+13. [資料異動 INSERT / UPDATE / DELETE](#資料異動)
 
-11. [資料參考](#資料參考)
+14. [資料參考](#資料參考)
 
 ### 建立資料庫與切換
 
@@ -83,6 +99,8 @@ CREATE TABLE table_name(自行命名表單) (
 
 (04)布林值（Boolean）語法：`BIT` → 1 (true) / 0 (false)
 
+---
+
 ### 基礎查詢語法
 
 #### 語法： `SELECT / FROM / WHERE`
@@ -138,6 +156,8 @@ SELECT uid, password
 FROM UserInfo
 WHERE cname = '王大明'
 ```
+
+---
 
 ### 多條件查詢
 
@@ -225,9 +245,7 @@ WHERE uid = 'A01' AND password IS NULL
 -- 運行結果：就會顯示 A01 這筆資料
 ```
 
----
-
-注意：
+🧚‍♂️ 注意：
 `Null` 只有 `IS NULL` / `IS NOT NULL`
 
 沒有 = `Null` 因為 `Null` 不屬於任何型態
@@ -251,16 +269,12 @@ WHERE cname NOT IN ('王大明', '李大媽')
 
 因此 `NULL` 也要調出來
 
----
-
-注意：
+🧚‍♂️ 注意：
 `NULL` 是 unknow
 而 `WHERE` 只會回傳 True 的資料
 
 所以針對 `NULL` 要使用 `IS NULL` / `IS NOT NULL`
 `= / <> / IN / NOT IN` 都會被默認隱藏 `NULL`
-
----
 
 接續上一題，要怎麼也把 `NULL` 也調出來呢？
 用到 邏輯合併 `OR` 把 `NULL` 也調出來
@@ -422,7 +436,7 @@ GROUP BY tel -- 把 tel
 HAVING sum(fee) > 1000
 ```
 
-## ![GROUP BY / HAVING](GROUP%20BY.png)
+[GROUP BY / HAVING](GROUP%20BY.png)
 
 ---
 
@@ -503,9 +517,11 @@ ORDER BY sum_fee desc
 
 → 必須使用子查詢（subquery）
 
-因為 SQL 語句會先跑 FROM，把內層查詢的別名算出來後，外層就能使用這些欄位。
+SQL 最先運行的是 `from` 所以將 `select` 別名的聚合函數 塞在裡面，，把內層查詢的別名算出來後，外層就能使用這些欄位。
 
-SQL 最先運行的是 `from` 所以將 `select` 別名的聚合函數 塞在裡面，讓他先把別名記得
+- 最後運行的是
+  (02)`select`
+  (01)`order by`
 
 ```sql
 /*
@@ -533,6 +549,359 @@ ORDER BY sum_fee DESC;
 
 ---
 
+### 關聯查詢
+
+#### 語法：`JOIN`
+
+資料庫通常採用多表設計（避免資料重複、提升一致性），實務查詢常需跨表取得資料，
+`JOIN` 用來依照關聯欄位（PK / FK）把多張表拉在一起，讓結果視覺上像一張表。
+
+##### 內部連接 `INNER JOIN`
+
+表和表之間的交集，直接寫 `JOIN` 也可以
+
+```sql
+-- 基礎的
+SELECT table_column1, table_column2...
+FROM table_name1 -- 從 表一的 PK 拉到 （主表）
+INNER JOIN table_name2 -- 表二的 FK
+ON table_name1.column_name=table_name2.column_name; -- 關聯的 PK / FK 拉起來
+```
+
+🔍 查詢條件：找出王大明住在哪裡
+
+```sql
+-- 先看 ER 圖找出關聯的地方 (PK / FK)
+-- 找到關聯的地方就可以開始串起來
+
+select *
+from UserInfo -- 從大表
+    inner Join Live -- 把 UserInfo 、 House 拉起來的第二張表
+        on UserInfo.uid = Live.uid -- PK 去比對 FK
+    inner Join House -- 終點第三張表
+        on House.hid = Live.hid -- PK 去比對 FK
+where cname = '王大明' -- 老樣子先重結果開始寫
+```
+
+##### 左側連接 `LEFT JOIN`
+
+左邊 (`FROM`) 主表有的，全部都要有，其他表有和主表關聯的才列出，如果沒找到就 `NULL`
+
+```sql
+SELECT column_name(s)
+FROM table1 -- 這張主表有的全部都要有
+LEFT JOIN table2 -- 有對到關聯才會列出
+ON table1.column_name = table2.column_name; -- 把表連接起來
+```
+
+🔍 查詢條件：找全部人的出住址
+
+```sql
+select cname, address -- (02) 想一下要什麼欄位 - 找全部人的出住址 → 需要姓名和住址兩個欄位 → 意思是 需要 UserInfo 和 House 這兩張，但是看了 ER 他們兩個需要 Live 這張關聯表才能接起來，所以一共需要三張
+from UserInfo -- (01)大表先寫（大表有的人全部都要列出來）
+left join Live  -- (03) 先抓中間那張關聯表
+    on UserInfo.uid = Live.uid -- (04) 用 uid 接：UserInfo.uid（PK） = Live.uid（FK）
+left join House -- (05) 最後處理 地址 這張表
+    on Live.hid = House.hid -- (06) 用 hid 接：Live.hid（FK） = House.hid（PK）
+-- 運行結果：印出 UserInfo 所有人，而沒有住址的人 address 會是 NULL
+```
+
+也可以這樣寫 ⬇
+
+```sql
+select cname, address
+from UserInfo as u
+left join Live as l
+    on u.uid = l.uid
+left join House as h
+    on l.hid = h.hid
+-- 運行結果是一樣的，只是資料表使用了別名
+```
+
+\*\*
+`JOIN` 一定要搭配 `ON` 把關聯連接起來，否則會笛卡兒積
+
+🧠 記憶點：
+
+- 有一個 `JOIN` 就要配一個 `ON`
+- `.uid` 只能接 `.uid` / `.hid` 只能接 `.hid` → 屬於同一種編號類型才接得起來
+- `.uid = .hid` 這樣是接不到的
+  \*\*
+
+---
+
+### 子查詢
+
+#### 語法：`()`
+
+子查詢 = 巢狀查詢
+先把「裡面那個查詢」跑完，再把結果丟給外層查詢使用
+(可以想像成迴圈，先跑完裡面再跑外面)
+
+子查詢出來的結果：
+一個值 / 一個欄位清單 / 一張表
+
+##### `WHERE IN` 子查詢
+
+```sql
+select *
+from table_name A
+where table_column A in(
+    select table_column B
+    from table_name B
+    -- 這裡的查詢結果 要跟 table_name A 的 column 有關聯
+)
+```
+
+內層會先跑完，變成一份清單，外層 column_A IN 再拿來比對關聯
+
+🔍 查詢條件：有帳單的電話
+
+目前資料庫每一支電話都有帳單，所以先手動插入一支沒有帳單的電話，方便看差異
+
+```sql
+insert into Phone
+values ('02-888234', 4)
+```
+
+插入電話號碼以後，一共會有五筆資料
+
+```sql
+select *
+from Phone
+-- 運行結果：五筆電話
+```
+
+那麼，條件是帳單和電話，所以我們先把他們兩張表先做基礎查詢
+
+```sql
+-- 帳單
+select *
+from Bill
+-- 電話
+select *
+from Phone
+-- 可以發現關聯性是 hid
+```
+
+那麼，開始使用子查詢把，有帳單的電話取出
+
+```sql
+select *
+from Phone
+where hid in (
+    select hid
+    from Bill
+    /*
+     把上方基礎查詢的 bill 貼上，並且把欄位改成 hid
+     原因
+     (01) 子查詢 IN 後的 select 只接受一個欄位
+     (02) 要找出 和 Phone 表的關聯性 hid / tel 都可以
+     */
+-- 成功運行出四筆資料
+)
+```
+
+🧠 記憶點：WHERE IN 關鍵規則
+
+- 子查詢 `select` 只能有一個欄位，一次塞兩個會報錯
+- 內外層要有關聯才有辦法接
+  外層是 `Phone.tel` → 內層就要查出 `tel`
+  外層是 `UserInfo.uid` → 內層就要查出 `uid`
+
+🔍 進階查詢條件：查出這些帳單電話的地址
+做法：
+子查詢 + `left join`
+為什麼是 `left join` 呢？
+因為 不論是否有地址，都要顯示帳單，使用 `inner join` 的話，會變成沒有帳單該筆資料就不顯示
+
+```sql
+/*
+  先把剛剛成功篩出有帳單的電話挖過來
+  select *
+  from Phone
+  where hid in (
+    select hid
+    from Bill
+    )
+*/
+-- 查出這些帳單電話的地址 這句話會需要三張表
+-- House.address, Phone.tel, Bill.tel(這隻已經用子查詢和 Phone 處理好了，所以 JOIN 的事情交給 House, Phone)
+select *
+from Phone -- Phone 當主表
+left join House -- 加入 House
+     on Phone.hid = House.hid
+where phone.hid in( -- 人變多了，所以要指定
+    select hid
+    from Bill
+)
+-- 運行結果：成功把 有帳單的地址篩出來，但是不需要看那麼多欄位，所以再改一下 ⬇
+select tel, address
+from Phone -- Phone 當主表
+left join House -- 加入 House
+     on Phone.hid = House.hid
+where phone.hid in( -- 人變多了，所以要指定
+    select hid
+    from Bill
+)
+```
+
+---
+
+### 資料異動
+
+#### 語法：`INSERT / UPDATE / DELETE`
+
+##### 新增資料 `INSERT INTO`
+
+插入資料到資料表
+
+```sql
+-- 基礎的
+INSERT INTO table_name (column1, column2, column3...) -- 資料表（欄1, 欄2, 欄3...）
+VALUES (value1, value2, value3...); --（欄1的值, 欄2的值, 欄3的值...）
+-- 簡寫的
+INSERT INTO table_name -- 資料表全部欄位
+VALUES (value1, value2, value3...); -- 資料表有的欄位就都要輸入值，否則會報錯
+```
+
+📥 輸入：增加 Lianne 的 password
+
+```sql
+insert into UserInfo (uid, cname, password, birthday)
+values ('L01', 'Lianne', 888, '1996-10-1')
+```
+
+📥 輸入：只增加 anna 的名字（因為 uid 是 PK 而且 NOT NULL 必須寫）
+
+```sql
+insert into UserInfo (uid, cname)
+values ('L02', 'anna')
+```
+
+\*\*
+👹 要注意的地方：
+
+- 要將資料插入表之前可以先把表調出來確認有什麼欄位
+- `NOT NULL` 的欄位一定要給值
+- 遇到自動編號 (IDENTITY) 不需要給值 (`values`)，也不需要寫入欄位 (`insert into`)
+- 注意 string 要給單引號
+
+\*\*
+
+Q: 那麼怎麼知道欄位是自動編號呢？
+
+A: 有三個方法可以確認：
+
+- 方法一：把表調出來，看有沒有連號（不跳號）; 如果是 字母＋數字 組合，那麼就不是，必須要寫入並且給值
+- 方法二：打開 DBeaver 找到 資料庫 schemas → dbo → 找到 table → 右鍵 view table → 找到 cloumn → 右鍵 view cloumn → 檢查室否有勾選 IDENTITY
+- 方法三：直接使用語法查欄位型態
+
+```sql
+select name, is_identity
+from sys.columns
+where object_id = object_id('House') -- 除了 括號內的表可以換，其他都是固定的
+-- 回傳 1 = true = is identity = 有自動編號
+```
+
+##### 修改資料 `UPDATE SET`
+
+要搭配 `WHERE` 指定改哪一筆資料，如果沒有下 `WHERE` 全部的資料都會被改成一樣的
+
+```sql
+-- 基礎的
+UPDATE table_name -- 找哪一張表
+SET column1 = value1, column2 = value2, ... -- 欄位: 新值; 可以想像成重新賦值，長得差不多
+WHERE condition; -- 指定哪一筆
+```
+
+📥 修改: Lianne 的 password 改成 666 並且把生日改成 1996/10/22
+
+```sql
+/*
+    老樣子先把表調出來看一下
+    SELECT *
+    FROM UserInfo
+    確定好就可以開始寫了
+*/
+update UserInfo -- 抓表
+set password = 666, birthday = '1996-10-22' -- 改什麼
+WHERE uid = 'L01' -- 改誰
+-- 運行結果: Lianne 修改指定欄位
+```
+
+##### 刪除資料 `DELETE FROM`
+
+和 `UPDATE` 一樣要搭配 `WHERE` 否則會刪到全部
+
+```sql
+-- 基礎的
+DELETE FROM table_name -- 從哪一張表刪除
+WHERE condition; -- 一定要加！否則刪除整張表!!!!!
+```
+
+📤 移除 anna 的資料
+
+```sql
+/*
+    老樣子先把表調出來看一下
+    SELECT *
+    FROM UserInfo
+    確定好就可以開始寫了
+*/
+delete from UserInfo
+where cname = 'anna'
+-- 運行結果：成功刪除 anna
+```
+
+再來一個
+📤 王小毛不住南京東路了，要移住址
+
+```sql
+delete from Live -- 從關聯表刪除
+where uid = 'A03' and hid = 2 -- 關聯表只有 uid, hid 所以針對這兩個欄位去做就可以了
+
+/*
+    只寫這樣也可以成功刪除，但是上面的寫法比較嚴謹
+    delete from Live -- 從關聯表刪除
+    where uid = 'A03'
+    -- 要是 王小毛 有多間房子並且登記多間地址，直接這樣寫的話會刪除王小毛的所有住址
+*/
+```
+
+👹 很重要的地方：
+
+- 修改、刪除資料沒有寫 `where` 是絕對不可以ㄉ！！！！！！
+- `where` 推薦寫 PK 因為 PK 不會重複，資料的人名、地址等等皆有可能重複
+
+🧚‍♂️ 步驟整理：
+
+(01) 先寫 `select` 找出目標、確認欄位
+
+(02) 移除、修改 補上 `where` 條件 (!import)
+
+(03) 開始把 `select` 換掉，詳細如下方
+
+```sql
+新增資料
+select from → insert into
+              values
+              口訣：插進去資料表，並且給值
+---
+移除
+select from → update
+重新賦值     → set
+補條件       → where
+              口訣：更新資料表某欄位，重新設定為某值，只改符合條件的
+---
+刪除
+select from → delete from
+補條件       → where
+            口訣：從某資料表刪除，並且只刪除符合條件的
+```
+
+---
+
 ### 資料參考
 
 - [ChainHao 資訊科技部落格](https://www.chainhao.com.tw/)
@@ -549,13 +918,12 @@ ORDER BY sum_fee DESC;
 - [✓] `AND / OR / IN`
 - [✓] `LIKE`
 - [✓] `BETWEEN / NOT BETWEEN`
-- [ ] `JOIN（INNER / LEFT / FULL）`
+- [✓] `JOIN（INNER / LEFT）`
 - [✓] `GROUP BY / HAVING`
 - [✓] `ORDER BY`
 - [✓] `CASE WHEN`
-- [ ] `INSERT / UPDATE / DELETE`
-- [ ] `PK / FK`
-- [ ] `Subquery`
+- [✓] `INSERT / UPDATE / DELETE`
+- [✓] `Subquery`
 
 ---
 
